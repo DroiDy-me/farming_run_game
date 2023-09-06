@@ -62,6 +62,8 @@ public class playerControl : MonoBehaviour
         Physics.gravity *= gravityModifier;
         gameOver = true;
         StartCoroutine(PlayIntro());
+
+        Time.timeScale = 1;
     }
 
     
@@ -142,6 +144,7 @@ public class playerControl : MonoBehaviour
     }
     public void backToMenu()
     {
+        Time.timeScale = 1;
         SceneManager.LoadScene(0);
     }
 }
