@@ -7,7 +7,7 @@ public class GameManager : MonoBehaviour
 {
     static public GameManager Instance;
 
-    public static int charecterPicked = 0;//0 - city man, 2 - farming man, 2 - woman
+    public static int charecterPicked = 0;//0 - city man, 1 - farming man, 2 - woman
     public static int mapPicked = 1; //1 - city, 2 - town , 3 - nature
     public static float mapIndPos;
     public static Vector3 charIndPos;

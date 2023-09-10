@@ -7,106 +7,97 @@ using UnityEngine.SceneManagement;
 
 public class playerControl : MonoBehaviour
 {
-    [SerializeField] private GameObject[] player = new GameObject[3];
-    [HideInInspector] private Rigidbody playerRb;
-    [SerializeField] public ParticleSystem explosionParticle;
-    [SerializeField] public ParticleSystem dirtParticles;
+
+    //palyer model variables
+    [SerializeField] internal GameObject[] player = new GameObject[3];
+    internal Rigidbody playerRb;
+    internal Animator playerAnim;
+    [SerializeField] internal ParticleSystem explosion;
+    [SerializeField] internal ParticleSystem dirt;
+    [SerializeField] internal AudioClip jumpSound;
+    [SerializeField] internal AudioClip crashSound;
+    [SerializeField] internal GameObject GameOverScreen;
+    [SerializeField] internal GameObject pauseScreen;
+    [SerializeField] internal Slider volumeSlider;
+    [SerializeField] internal GameObject start;
+    [SerializeField] internal float lerpSpeed;
+    [SerializeField] internal TextMeshProUGUI scoreTextEnd;
 
     //pause variables
-    [SerializeField] private GameObject pauseScreen;
-    [SerializeField] private Slider volumeSlider;
     private bool is_paused;
 
     //starting animation variables
-    [SerializeField] private GameObject start;
-    [SerializeField] private GameObject end;
-    [SerializeField] private float lerpSpeed;
+    private Vector3 startPos;
 
-    //sounds
-    [HideInInspector] public AudioSource playerSounds;
-    [HideInInspector] public AudioSource music;
-    [SerializeField] public AudioClip jumpSound;
-    [SerializeField] public AudioClip crashSound;
+   //sounds
+    private AudioSource playerSounds;
+    public AudioSource music;
+    private AudioClip explSound;
 
-    [SerializeField] public GameObject GameOver;
-    [SerializeField] public TextMeshProUGUI scoreTextEnd;
 
-    public float jumpforce = 500;
-    private float gravityModifier = 1;
-    private bool doubleJump;
 
+    //moving variables 
+    private float jumpforce = 500;
+    private float gravityModifier = 1.5f;
+    protected bool doubleJump;
+    [SerializeField] public float speed = 10;
     [HideInInspector] public bool gameOver = false;
+    [HideInInspector] protected bool isOnGround = true;
 
-    [HideInInspector] public bool isOnGround = true;
-
-    [HideInInspector] public Animator playerAnim;
-
+    //other
     [HideInInspector] public float Score;
-    [HideInInspector] public float speed = 10;
 
     // Start is called before the first frame update
     void Start()
     {
-        for(int i = 0; i < player.Length; i++)
+        startPos = gameObject.transform.position;
+
+        for (int i = 0; i < player.Length; i++)
         {
-            player[i].SetActive(false);
+            player[i].SetActive(true);
+            if(i != GameManager.charecterPicked)
+            {
+                Destroy(player[i].gameObject);
+            }
         }
-        player[GameManager.charecterPicked].SetActive(true);
 
-        playerRb = player[GameManager.charecterPicked].GetComponent<Rigidbody>();
-        music = GameObject.Find("Main Camera").GetComponent<AudioSource>();
-        playerSounds = GetComponent<AudioSource>();
-
-        playerAnim = GetComponentInChildren<Animator>();
+        setComponents();
 
         Physics.gravity *= gravityModifier;
         gameOver = true;
         StartCoroutine(PlayIntro());
-
         Time.timeScale = 1;
     }
 
-    
 
     // Update is called once per frame
-
-
-    void Update()
+    internal void Update()
     {
         Score += speed / 100 * Time.deltaTime;
         if (Input.GetKeyDown(KeyCode.Space) && isOnGround && !gameOver)
         {
-            playerRb.AddForce(Vector3.up * jumpforce, ForceMode.Impulse);
-            isOnGround = false;
-            dirtParticles.Stop();
-            playerAnim.SetTrigger("Jump_trig");
-            playerSounds.PlayOneShot(jumpSound, 1.0f);
-            doubleJump = false;
+            jump();
         }
         else if (Input.GetKeyDown(KeyCode.Space) && !isOnGround && !doubleJump)
         {
-            doubleJump = true;
-            playerRb.AddForce(Vector3.up * jumpforce, ForceMode.Impulse);
-            playerAnim.Play("Running_Jump", 3, 0f);
-            playerSounds.PlayOneShot(jumpSound, 1.0f);
+            seccondJump();
         }
-        playerAnim.SetFloat("Speed_f", speed / 10);
+        //playerAnim.SetFloat("Speed_f", speed / 10);
         if (Input.GetKeyDown(KeyCode.Escape) && !gameOver)
         {
             pause();
         }
     }
 
-    IEnumerator PlayIntro()
+    protected virtual IEnumerator PlayIntro()
     {
-        Vector3 startPos = gameObject.transform.position;
+        startPos = gameObject.transform.position;
         Vector3 endPos = start.transform.position;
         float journeyLength = Vector3.Distance(startPos, endPos);
         float startTime = Time.time;
         float distanceCovered = (Time.time - startTime) * lerpSpeed;
         float fractionOfJourney = distanceCovered / journeyLength;
-        playerAnim.SetFloat("Speed_f",
-        0.5f);
+        playerAnim.SetFloat("Speed_f", 0.5f);
         while (fractionOfJourney < 1)
         {
             distanceCovered = (Time.time - startTime) * lerpSpeed;
@@ -119,7 +110,33 @@ public class playerControl : MonoBehaviour
         gameOver = false;
     }
 
-    private void pause()
+    private void setComponents()
+    {
+        playerAnim = GetComponentInChildren<Animator>();
+        music = GameObject.Find("Main Camera").GetComponent<AudioSource>();
+        playerSounds = gameObject.GetComponent<AudioSource>();
+        explSound = crashSound;
+    }
+
+    internal void jump()
+    {
+        playerRb.AddForce(Vector3.up * jumpforce, ForceMode.Impulse);
+        isOnGround = false;
+        dirt.Stop();
+        playerAnim.SetTrigger("Jump_trig");
+        playerSounds.PlayOneShot(jumpSound, 1.0f);
+        doubleJump = false;
+    }
+
+    internal void seccondJump()
+    {
+        doubleJump = true;
+        playerRb.AddForce(Vector3.up * jumpforce, ForceMode.Impulse);
+        playerAnim.Play("Running_Jump", 3, 0f);
+        playerSounds.PlayOneShot(jumpSound, 1.0f);
+    }
+
+    protected void pause()
     {
         is_paused = !is_paused;
         if (is_paused)
@@ -133,6 +150,30 @@ public class playerControl : MonoBehaviour
         volumeSlider.value = GameManager.volume;
     }
 
+    internal void fall()
+    {
+        dirt.Play();
+        isOnGround = true;
+    }
+
+    internal void GameOver()
+    {
+        gameOver = true;
+        Debug.Log("Game Over!");
+        playerAnim.SetBool("Death_b", true);
+        playerAnim.SetInteger("DeathType_int", 1);
+        dirt.Stop();
+        explosion.Play();
+        music.Stop();
+        playerSounds.PlayOneShot(explSound, 1.0f);
+        GameManager.scoreUpdate(System.DateTime.Now.ToString("hh:mm") + " " +
+                                    System.DateTime.Now.ToString("MM/dd/yyyy") + ": " +
+                                    Mathf.Round(Score * 100f) / 100f, Score);
+        GameOverScreen.SetActive(true);
+        scoreTextEnd.text = Mathf.Round(Score * 100f) / 100f + "";
+        GameManager.save();
+    }
+
     public void volumeChange()
     {
         GameManager.volume = volumeSlider.value;
@@ -142,6 +183,7 @@ public class playerControl : MonoBehaviour
     {
         SceneManager.LoadScene(SceneManager.GetActiveScene().name);
     }
+
     public void backToMenu()
     {
         Time.timeScale = 1;
